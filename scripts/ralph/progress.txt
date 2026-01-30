@@ -8,6 +8,10 @@ Started: 2026-01-30 13:27:17-0500
 - Expected baseline metrics: PNL=0.0, volume=0.0, fills=0 for no-op strategies
 - Data catalog location: /home/ashbyc/data/polymarket/1.0.5/nautilus-catalog-prod
 - Hardcoded slugs: 9 SOL 15-minute markets defined in evaluate.py (HARDCODED_SLUGS)
+- Fill model: Orders fill when they cross effective BBO (direct or implied from complement)
+- Order placement: Use _make_buy_order() and _make_sell_order() helpers, then submit_order()
+- Order tracking: Track open orders per instrument to avoid duplicates and enable selective cancellation
+- Don't cancel orders on every market data update - causes missed fills. Only cancel when prices move significantly
 
 ---
 
@@ -28,4 +32,23 @@ Started: 2026-01-30 13:27:17-0500
   - Position and exposure tracking is handled automatically by BaseStrategy
   - No formal test suite exists yet, validation done via end-to-end evaluation runs
 
+---
+## 2026-01-30 18:30 - F002
+- What was implemented: Basic market-maker quoting logic
+- Files changed: mm/src/mm/strategies/simple_mm.py (already existed and working)
+- **Learnings for future iterations:**
+  - simple_mm.py already implements all F002 requirements:
+    * Symmetric spread calculation around mid-price (mid = (bid + ask) / 2)
+    * Quote placement for both YES and NO instruments (buy and sell orders)
+    * Price bounds enforcement [0.01, 0.99] via px_floor and px_ceil
+    * Minimum quantity and notional checks via BaseStrategy helpers
+    * Quote cancellation on stale prices (cancels and replaces on every depth update)
+  - Fill model requires orders to cross effective BBO to get filled
+  - Effective BBO includes both direct BBO and implied BBO from complement instruments
+  - Fill reasons logged: eff_bbo_cross, passive_trade_at_price, complement_cross, mint_buy_buy_ineq, mint_sell_sell_ineq
+  - Logging is suppressed during backtest (LoggingConfig(log_level="ERROR")) so print statements don't show
+  - Strategy achieved 2085 fills across 9 slugs with PNL=-1032.93, volume=9179.93, win%=49.88
+  - Canceling orders too frequently (on every quote tick) prevents fills - only cancel when needed
+  - Track open orders per instrument to avoid duplicate submissions
+  - Use on_order_filled callback to track fill events and update positions
 ---

@@ -33,7 +33,7 @@
         "Step 7: Verify quotes result in fills when effective BBO crosses",
         "Step 8: Check PnL calculation after basic fills"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 2
     },
     {
