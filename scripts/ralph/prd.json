@@ -1,0 +1,762 @@
+{
+  "project": "polymarket-mm-agent",
+  "source": "feature_list.json",
+  "branchName": "master",
+  "createdAt": "2026-01-30T18:27:11Z",
+  "stories": [
+    {
+      "id": "F001",
+      "title": "Baseline no-op strategy implementation",
+      "category": "functional",
+      "steps": [
+        "Step 1: Create strategy class inheriting from BaseStrategy",
+        "Step 2: Implement minimal required factory functions",
+        "Step 3: Add safe no-op on_data handlers (no order placement)",
+        "Step 4: Verify strategy can be imported and instantiated",
+        "Step 5: Run evaluation end-to-end with no trades",
+        "Step 6: Verify metrics report correctly with zero fills"
+      ],
+      "passes": false,
+      "priority": 1
+    },
+    {
+      "id": "F002",
+      "title": "Basic market-maker quoting logic",
+      "category": "functional",
+      "steps": [
+        "Step 1: Implement symmetric spread calculation around mid-price",
+        "Step 2: Add quote placement for YES and NO instruments",
+        "Step 3: Enforce price bounds [0.01, 0.99]",
+        "Step 4: Implement minimum quantity and notional checks",
+        "Step 5: Add quote cancellation on stale prices",
+        "Step 6: Test quote placement generates valid orders",
+        "Step 7: Verify quotes result in fills when effective BBO crosses",
+        "Step 8: Check PnL calculation after basic fills"
+      ],
+      "passes": false,
+      "priority": 2
+    },
+    {
+      "id": "F003",
+      "title": "Complementary instrument awareness",
+      "category": "functional",
+      "steps": [
+        "Step 1: Store YES/NO instrument pairs by slug",
+        "Step 2: Track complement BBO for each instrument",
+        "Step 3: Calculate implied BBO from complement prices",
+        "Step 4: Use max(direct, implied) for effective bid",
+        "Step 5: Use min(direct, implied) for effective ask",
+        "Step 6: Verify implied liquidity correctly computed",
+        "Step 7: Test quotes account for complement pricing"
+      ],
+      "passes": false,
+      "priority": 3
+    },
+    {
+      "id": "F004",
+      "title": "Inventory-aware position management",
+      "category": "functional",
+      "steps": [
+        "Step 1: Track net position per instrument from fills",
+        "Step 2: Track average cost basis for each position",
+        "Step 3: Implement position limit thresholds (long/short)",
+        "Step 4: Add inventory skew to quote pricing",
+        "Step 5: Widen spread as position approaches limits",
+        "Step 6: Stop quoting one side when at position limit",
+        "Step 7: Test position limits prevent runaway exposure",
+        "Step 8: Verify skew adjustments affect pricing correctly"
+      ],
+      "passes": false,
+      "priority": 4
+    },
+    {
+      "id": "F005",
+      "title": "Spread calculation and calibration",
+      "category": "functional",
+      "steps": [
+        "Step 1: Implement base spread as configurable parameter",
+        "Step 2: Add volatility estimate from recent price moves",
+        "Step 3: Scale spread with volatility metric",
+        "Step 4: Add adverse selection adjustment from orderflow",
+        "Step 5: Implement minimum spread floor",
+        "Step 6: Test spread adapts to market conditions",
+        "Step 7: Verify spread prevents excessive adverse fills"
+      ],
+      "passes": false,
+      "priority": 5
+    },
+    {
+      "id": "F006",
+      "title": "Order lifecycle management",
+      "category": "functional",
+      "steps": [
+        "Step 1: Track open orders per instrument",
+        "Step 2: Cancel stale orders on new market data",
+        "Step 3: Implement order timeout mechanism",
+        "Step 4: Replace orders when quotes need updating",
+        "Step 5: Handle partial fills correctly",
+        "Step 6: Log all order submissions and fills",
+        "Step 7: Verify no duplicate orders submitted",
+        "Step 8: Test order replacement is atomic"
+      ],
+      "passes": false,
+      "priority": 6
+    },
+    {
+      "id": "F007",
+      "title": "Multi-instrument orchestration",
+      "category": "functional",
+      "steps": [
+        "Step 1: Load all slugs from metadata",
+        "Step 2: Subscribe to quote/trade/depth for all instruments",
+        "Step 3: Maintain separate state per instrument pair",
+        "Step 4: Process updates for all active markets",
+        "Step 5: Balance CPU/memory across many instruments",
+        "Step 6: Test strategy runs on full slug list",
+        "Step 7: Verify no cross-contamination between markets",
+        "Step 8: Check all instruments receive quotes"
+      ],
+      "passes": false,
+      "priority": 7
+    },
+    {
+      "id": "F008",
+      "title": "Depth-based liquidity assessment",
+      "category": "functional",
+      "steps": [
+        "Step 1: Parse OrderBookDepth10 snapshots",
+        "Step 2: Sum available liquidity at each price level",
+        "Step 3: Calculate depth-weighted mid price",
+        "Step 4: Estimate fill probability from depth",
+        "Step 5: Adjust quote size based on available depth",
+        "Step 6: Test depth consumption estimates",
+        "Step 7: Verify quotes don't exceed available liquidity"
+      ],
+      "passes": false,
+      "priority": 8
+    },
+    {
+      "id": "F009",
+      "title": "Order flow bucket signal extraction",
+      "category": "functional",
+      "steps": [
+        "Step 1: Subscribe to OrderFlowBucketDepth10CustomData",
+        "Step 2: Parse add/cancel/trade counts per level",
+        "Step 3: Calculate net flow (adds - cancels) per side",
+        "Step 4: Detect aggressive vs passive flow patterns",
+        "Step 5: Adjust quotes based on flow imbalance",
+        "Step 6: Test flow signal improves quote placement",
+        "Step 7: Verify adverse selection reduction from flow"
+      ],
+      "passes": false,
+      "priority": 9
+    },
+    {
+      "id": "F010",
+      "title": "Chainlink oracle integration",
+      "category": "functional",
+      "steps": [
+        "Step 1: Subscribe to ChainlinkCustomData feed",
+        "Step 2: Store latest oracle price per asset",
+        "Step 3: Compute implied probabilities from oracle",
+        "Step 4: Compare market prices to oracle-implied fair",
+        "Step 5: Skew quotes toward oracle-implied value",
+        "Step 6: Test oracle integration doesn't break strategy",
+        "Step 7: Verify oracle prices used in decision logic"
+      ],
+      "passes": false,
+      "priority": 10
+    },
+    {
+      "id": "F011",
+      "title": "Time-to-maturity adjustments",
+      "category": "functional",
+      "steps": [
+        "Step 1: Parse start_date and end_date from metadata",
+        "Step 2: Calculate remaining time to settlement",
+        "Step 3: Widen spread as maturity approaches",
+        "Step 4: Reduce position limits near maturity",
+        "Step 5: Stop quoting in final minutes before settlement",
+        "Step 6: Test maturity logic triggers correctly",
+        "Step 7: Verify no trading after market closes"
+      ],
+      "passes": false,
+      "priority": 11
+    },
+    {
+      "id": "F012",
+      "title": "Cross-pair minting arbitrage detection",
+      "category": "functional",
+      "steps": [
+        "Step 1: Check if YES+NO prices sum to < 1.0",
+        "Step 2: Detect minting opportunities (buy both < $1)",
+        "Step 3: Check if YES+NO prices sum to > 1.0",
+        "Step 4: Detect burning opportunities (sell both > $1)",
+        "Step 5: Adjust quotes to prevent being arbed",
+        "Step 6: Test minting logic matches fill model",
+        "Step 7: Verify no losses from mint/burn misalignment"
+      ],
+      "passes": false,
+      "priority": 12
+    },
+    {
+      "id": "F013",
+      "title": "Baseline evaluation run on all slugs",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Run evaluate.py with baseline strategy",
+        "Step 2: Verify all 9 slugs complete successfully",
+        "Step 3: Record baseline PnL, volume, fill count",
+        "Step 4: Check for any exceptions or errors",
+        "Step 5: Verify output metrics format is correct",
+        "Step 6: Save results to benchmark file"
+      ],
+      "passes": false,
+      "priority": 13
+    },
+    {
+      "id": "F014",
+      "title": "Smoke test with single slug",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Modify evaluation to run one slug only",
+        "Step 2: Verify fast completion (<30 seconds)",
+        "Step 3: Check smoke test produces valid output",
+        "Step 4: Add smoke command to init.sh",
+        "Step 5: Document smoke test usage in RUNBOOK"
+      ],
+      "passes": false,
+      "priority": 14
+    },
+    {
+      "id": "F015",
+      "title": "Metrics collection and reporting",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Parse fill report DataFrame correctly",
+        "Step 2: Calculate realized PnL from fills to settlement",
+        "Step 3: Calculate total traded volume (qty * price)",
+        "Step 4: Count number of fills",
+        "Step 5: Add per-instrument breakdown metrics",
+        "Step 6: Generate summary statistics report",
+        "Step 7: Save metrics to JSON output file",
+        "Step 8: Verify metrics match manual calculations"
+      ],
+      "passes": false,
+      "priority": 15
+    },
+    {
+      "id": "F016",
+      "title": "Regression testing framework",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Save baseline metrics as reference",
+        "Step 2: Add script to compare new results vs baseline",
+        "Step 3: Flag significant metric degradations",
+        "Step 4: Add tolerance thresholds for regression",
+        "Step 5: Generate regression test report",
+        "Step 6: Document regression testing in RUNBOOK"
+      ],
+      "passes": false,
+      "priority": 16
+    },
+    {
+      "id": "F017",
+      "title": "Performance profiling and optimization",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Add timing instrumentation to strategy",
+        "Step 2: Measure time per data update handler",
+        "Step 3: Identify bottlenecks in hot paths",
+        "Step 4: Profile memory usage across instruments",
+        "Step 5: Optimize slow operations",
+        "Step 6: Verify optimization doesn't change results",
+        "Step 7: Document performance characteristics"
+      ],
+      "passes": false,
+      "priority": 17
+    },
+    {
+      "id": "F018",
+      "title": "Fill model validation and diagnostics",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Extract fill reasons from fill model logs",
+        "Step 2: Count fills by reason (eff_bbo, mint, cross, passive)",
+        "Step 3: Verify fill prices match expected levels",
+        "Step 4: Check no fills occur outside BBO bounds",
+        "Step 5: Validate complement-based fills are correct",
+        "Step 6: Test edge cases (0.01, 0.99 prices)",
+        "Step 7: Document fill model behavior",
+        "Step 8: Create fill model test suite"
+      ],
+      "passes": false,
+      "priority": 18
+    },
+    {
+      "id": "F019",
+      "title": "Position limit enforcement",
+      "category": "risk",
+      "steps": [
+        "Step 1: Define max position per instrument (e.g., 10,000)",
+        "Step 2: Check position before every order submission",
+        "Step 3: Reject orders that would exceed limits",
+        "Step 4: Log position limit rejections",
+        "Step 5: Test limits prevent excessive exposure",
+        "Step 6: Verify limits apply to open orders too"
+      ],
+      "passes": false,
+      "priority": 19
+    },
+    {
+      "id": "F020",
+      "title": "Notional exposure tracking",
+      "category": "risk",
+      "steps": [
+        "Step 1: Calculate notional exposure per instrument",
+        "Step 2: Sum total portfolio notional",
+        "Step 3: Set max portfolio notional limit",
+        "Step 4: Stop quoting when portfolio limit hit",
+        "Step 5: Test portfolio limit enforcement",
+        "Step 6: Report notional exposure in metrics"
+      ],
+      "passes": false,
+      "priority": 20
+    },
+    {
+      "id": "F021",
+      "title": "Drawdown monitoring",
+      "category": "risk",
+      "steps": [
+        "Step 1: Track running PnL during backtest",
+        "Step 2: Calculate peak equity level",
+        "Step 3: Compute current drawdown from peak",
+        "Step 4: Log maximum drawdown reached",
+        "Step 5: Add drawdown metrics to output",
+        "Step 6: Test drawdown calculation correctness"
+      ],
+      "passes": false,
+      "priority": 21
+    },
+    {
+      "id": "F022",
+      "title": "Adverse selection detection",
+      "category": "risk",
+      "steps": [
+        "Step 1: Track fills vs subsequent price moves",
+        "Step 2: Measure average adverse move post-fill",
+        "Step 3: Detect systematic adverse selection",
+        "Step 4: Widen spread when adverse selection high",
+        "Step 5: Log adverse selection metrics",
+        "Step 6: Test adverse selection improves over time"
+      ],
+      "passes": false,
+      "priority": 22
+    },
+    {
+      "id": "F023",
+      "title": "Price precision and rounding safety",
+      "category": "risk",
+      "steps": [
+        "Step 1: Verify all prices use 2 decimal precision",
+        "Step 2: Check no floating point rounding errors",
+        "Step 3: Test edge cases at 0.01 and 0.99 bounds",
+        "Step 4: Ensure complement prices sum correctly",
+        "Step 5: Validate quantity precision matches instrument",
+        "Step 6: Add assertions for price validity"
+      ],
+      "passes": false,
+      "priority": 23
+    },
+    {
+      "id": "F024",
+      "title": "Order validity pre-submission checks",
+      "category": "risk",
+      "steps": [
+        "Step 1: Check instrument exists before creating order",
+        "Step 2: Validate price within [0.01, 0.99]",
+        "Step 3: Validate quantity >= minimum",
+        "Step 4: Check notional >= minimum notional",
+        "Step 5: Verify no NaN or inf values",
+        "Step 6: Add comprehensive order validation function",
+        "Step 7: Log rejected invalid orders",
+        "Step 8: Test validation catches all edge cases"
+      ],
+      "passes": false,
+      "priority": 24
+    },
+    {
+      "id": "F025",
+      "title": "Mid-price calculation methodology",
+      "category": "research",
+      "steps": [
+        "Step 1: Compare simple BBO mid vs depth-weighted mid",
+        "Step 2: Test micro-price (depth-weighted) accuracy",
+        "Step 3: Evaluate complement-aware mid calculation",
+        "Step 4: Measure mid-price prediction quality",
+        "Step 5: Choose best mid calculation for strategy",
+        "Step 6: Document mid-price methodology"
+      ],
+      "passes": false,
+      "priority": 25
+    },
+    {
+      "id": "F026",
+      "title": "Optimal spread width tuning",
+      "category": "research",
+      "steps": [
+        "Step 1: Run strategy with spreads from 1bp to 10bp",
+        "Step 2: Measure PnL vs spread width",
+        "Step 3: Measure fill rate vs spread width",
+        "Step 4: Find optimal spread for PnL per fill",
+        "Step 5: Test spread stability across slugs",
+        "Step 6: Document spread tuning results",
+        "Step 7: Implement adaptive spread mechanism"
+      ],
+      "passes": false,
+      "priority": 26
+    },
+    {
+      "id": "F027",
+      "title": "Quote size optimization",
+      "category": "research",
+      "steps": [
+        "Step 1: Test fixed size vs depth-proportional size",
+        "Step 2: Measure adverse selection vs quote size",
+        "Step 3: Test inventory turnover vs size",
+        "Step 4: Find optimal size for risk-adjusted returns",
+        "Step 5: Implement dynamic size adjustment",
+        "Step 6: Document size optimization findings"
+      ],
+      "passes": false,
+      "priority": 27
+    },
+    {
+      "id": "F028",
+      "title": "Inventory skew parameter calibration",
+      "category": "research",
+      "steps": [
+        "Step 1: Test skew coefficients from 0.0 to 1.0",
+        "Step 2: Measure inventory mean reversion speed",
+        "Step 3: Measure PnL vs skew aggressiveness",
+        "Step 4: Find optimal skew for inventory control",
+        "Step 5: Test skew effectiveness across slugs",
+        "Step 6: Document skew calibration results"
+      ],
+      "passes": false,
+      "priority": 28
+    },
+    {
+      "id": "F029",
+      "title": "Order flow signal effectiveness",
+      "category": "research",
+      "steps": [
+        "Step 1: Measure predictive power of add/cancel flow",
+        "Step 2: Test flow imbalance correlation with price",
+        "Step 3: Evaluate different flow aggregation windows",
+        "Step 4: Implement flow-based quote adjustment",
+        "Step 5: Measure PnL improvement from flow signals",
+        "Step 6: Document flow signal findings"
+      ],
+      "passes": false,
+      "priority": 29
+    },
+    {
+      "id": "F030",
+      "title": "Market regime detection",
+      "category": "research",
+      "steps": [
+        "Step 1: Classify markets as trending vs mean-reverting",
+        "Step 2: Detect high vs low volatility regimes",
+        "Step 3: Identify liquidity dry-up periods",
+        "Step 4: Adjust strategy parameters per regime",
+        "Step 5: Test regime-aware strategy performance",
+        "Step 6: Document regime detection methodology"
+      ],
+      "passes": false,
+      "priority": 30
+    },
+    {
+      "id": "F031",
+      "title": "Cross-market correlation analysis",
+      "category": "research",
+      "steps": [
+        "Step 1: Measure price correlations across slugs",
+        "Step 2: Identify co-moving market groups",
+        "Step 3: Test portfolio diversification benefit",
+        "Step 4: Implement correlation-aware sizing",
+        "Step 5: Measure risk reduction from diversification",
+        "Step 6: Document correlation findings"
+      ],
+      "passes": false,
+      "priority": 31
+    },
+    {
+      "id": "F032",
+      "title": "Strategy parameter configuration system",
+      "category": "functional",
+      "steps": [
+        "Step 1: Define strategy config dataclass/dict",
+        "Step 2: Pass config via --strategy-kwargs JSON",
+        "Step 3: Add parameter validation on init",
+        "Step 4: Document all configurable parameters",
+        "Step 5: Test parameter loading from JSON",
+        "Step 6: Add config to output metadata",
+        "Step 7: Create parameter sweep utility",
+        "Step 8: Document parameter tuning guide"
+      ],
+      "passes": false,
+      "priority": 32
+    },
+    {
+      "id": "F033",
+      "title": "Logging and debugging infrastructure",
+      "category": "functional",
+      "steps": [
+        "Step 1: Add structured logging with levels",
+        "Step 2: Log all key events (quotes, fills, cancels)",
+        "Step 3: Add debug mode with verbose output",
+        "Step 4: Create per-instrument log filtering",
+        "Step 5: Output logs to timestamped files",
+        "Step 6: Test log parsing and analysis",
+        "Step 7: Document logging configuration"
+      ],
+      "passes": false,
+      "priority": 33
+    },
+    {
+      "id": "F034",
+      "title": "Backtesting result visualization",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Create PnL time series plot",
+        "Step 2: Plot position over time per instrument",
+        "Step 3: Visualize spread and mid over time",
+        "Step 4: Generate fill distribution histograms",
+        "Step 5: Create risk metric dashboards",
+        "Step 6: Save plots to output directory",
+        "Step 7: Add plotting script to init.sh",
+        "Step 8: Document visualization usage"
+      ],
+      "passes": false,
+      "priority": 34
+    },
+    {
+      "id": "F035",
+      "title": "Quote freshness and staleness detection",
+      "category": "functional",
+      "steps": [
+        "Step 1: Track timestamp of last market data update",
+        "Step 2: Define staleness threshold (e.g., 5 seconds)",
+        "Step 3: Cancel all quotes when data goes stale",
+        "Step 4: Resume quoting when fresh data arrives",
+        "Step 5: Log staleness events",
+        "Step 6: Test staleness detection works correctly",
+        "Step 7: Verify no stale quote fills occur"
+      ],
+      "passes": false,
+      "priority": 35
+    },
+    {
+      "id": "F036",
+      "title": "Quote price improvement logic",
+      "category": "functional",
+      "steps": [
+        "Step 1: Check if our quote can improve BBO",
+        "Step 2: Place quote at best_bid + tick or best_ask - tick",
+        "Step 3: Ensure price improvement doesn't cross mid",
+        "Step 4: Test queue priority from improvement",
+        "Step 5: Measure fill rate improvement",
+        "Step 6: Document price improvement strategy"
+      ],
+      "passes": false,
+      "priority": 36
+    },
+    {
+      "id": "F037",
+      "title": "Trade velocity monitoring",
+      "category": "risk",
+      "steps": [
+        "Step 1: Track fills per minute per instrument",
+        "Step 2: Calculate rolling trade velocity",
+        "Step 3: Set maximum velocity threshold",
+        "Step 4: Pause quoting if velocity too high",
+        "Step 5: Log velocity limit events",
+        "Step 6: Test velocity control prevents over-trading"
+      ],
+      "passes": false,
+      "priority": 37
+    },
+    {
+      "id": "F038",
+      "title": "Sharpe ratio and risk-adjusted returns",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Calculate returns time series from PnL",
+        "Step 2: Compute return mean and standard deviation",
+        "Step 3: Calculate Sharpe ratio (annualized)",
+        "Step 4: Add Sharpe to metrics output",
+        "Step 5: Compare Sharpe across strategy variants",
+        "Step 6: Document risk-adjusted metric definitions"
+      ],
+      "passes": false,
+      "priority": 38
+    },
+    {
+      "id": "F039",
+      "title": "Multi-level quote placement",
+      "category": "functional",
+      "steps": [
+        "Step 1: Implement ladder of quotes at multiple levels",
+        "Step 2: Size quotes inversely with distance from mid",
+        "Step 3: Ensure total exposure stays within limits",
+        "Step 4: Test multi-level improves fill diversity",
+        "Step 5: Measure PnL improvement from laddering",
+        "Step 6: Document multi-level quote strategy"
+      ],
+      "passes": false,
+      "priority": 39
+    },
+    {
+      "id": "F040",
+      "title": "Fill model passive vs aggressive analysis",
+      "category": "research",
+      "steps": [
+        "Step 1: Separate fills by reason type",
+        "Step 2: Compare PnL by fill type",
+        "Step 3: Measure adverse selection by type",
+        "Step 4: Identify most profitable fill paths",
+        "Step 5: Optimize quote placement for best fills",
+        "Step 6: Document fill type analysis findings"
+      ],
+      "passes": false,
+      "priority": 40
+    },
+    {
+      "id": "F041",
+      "title": "Win rate and trade outcome analysis",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Classify each fill as win/loss at settlement",
+        "Step 2: Calculate overall win rate percentage",
+        "Step 3: Compute average win size vs average loss size",
+        "Step 4: Analyze win rate by side (buy/sell)",
+        "Step 5: Add win rate metrics to output",
+        "Step 6: Document trade outcome methodology"
+      ],
+      "passes": false,
+      "priority": 41
+    },
+    {
+      "id": "F042",
+      "title": "Emergency shutdown and risk controls",
+      "category": "functional",
+      "steps": [
+        "Step 1: Add max loss threshold parameter",
+        "Step 2: Monitor cumulative loss during backtest",
+        "Step 3: Cancel all orders when loss limit hit",
+        "Step 4: Stop all quoting when shutdown triggered",
+        "Step 5: Log shutdown events clearly",
+        "Step 6: Test shutdown prevents further losses",
+        "Step 7: Add shutdown status to metrics output"
+      ],
+      "passes": false,
+      "priority": 42
+    },
+    {
+      "id": "F043",
+      "title": "Comparative strategy benchmarking",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Implement multiple strategy variants",
+        "Step 2: Run all variants on same slug set",
+        "Step 3: Compare PnL across variants",
+        "Step 4: Compare risk metrics across variants",
+        "Step 5: Generate comparative performance table",
+        "Step 6: Document best-performing variant",
+        "Step 7: Create strategy comparison script",
+        "Step 8: Add comparison to RUNBOOK"
+      ],
+      "passes": false,
+      "priority": 43
+    },
+    {
+      "id": "F044",
+      "title": "Time-of-event analysis",
+      "category": "research",
+      "steps": [
+        "Step 1: Extract minute-of-market for each fill",
+        "Step 2: Analyze PnL by time within market duration",
+        "Step 3: Identify profitable vs unprofitable periods",
+        "Step 4: Test time-based quote adjustments",
+        "Step 5: Optimize strategy for early vs late periods",
+        "Step 6: Document time-of-event findings"
+      ],
+      "passes": false,
+      "priority": 44
+    },
+    {
+      "id": "F045",
+      "title": "Data quality and coverage checks",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Measure quote update frequency per slug",
+        "Step 2: Measure trade tick frequency per slug",
+        "Step 3: Measure depth snapshot frequency per slug",
+        "Step 4: Detect gaps or stale data periods",
+        "Step 5: Log data quality warnings",
+        "Step 6: Report coverage stats in metrics",
+        "Step 7: Document expected data frequencies"
+      ],
+      "passes": false,
+      "priority": 45
+    },
+    {
+      "id": "F046",
+      "title": "Post-settlement P&L reconciliation",
+      "category": "functional",
+      "steps": [
+        "Step 1: Retrieve settlement outcome per slug",
+        "Step 2: Mark positions to settlement price (0 or 1)",
+        "Step 3: Calculate realized P&L from all fills",
+        "Step 4: Verify P&L matches evaluation output",
+        "Step 5: Test P&L calculation on edge cases",
+        "Step 6: Add P&L breakdown per instrument",
+        "Step 7: Document P&L reconciliation process"
+      ],
+      "passes": false,
+      "priority": 46
+    },
+    {
+      "id": "F047",
+      "title": "Continuous integration and automated testing",
+      "category": "evaluation",
+      "steps": [
+        "Step 1: Add pytest test suite for utilities",
+        "Step 2: Add integration test for baseline strategy",
+        "Step 3: Set up CI pipeline (GitHub Actions)",
+        "Step 4: Run regression tests on every commit",
+        "Step 5: Add test coverage reporting",
+        "Step 6: Document testing procedures",
+        "Step 7: Add CI badge to README"
+      ],
+      "passes": false,
+      "priority": 47
+    },
+    {
+      "id": "F048",
+      "title": "Strategy persistence and state management",
+      "category": "research",
+      "steps": [
+        "Step 1: Add checkpoint saving during long runs",
+        "Step 2: Implement strategy state serialization",
+        "Step 3: Add resume from checkpoint capability",
+        "Step 4: Test checkpoint/resume correctness",
+        "Step 5: Document checkpoint usage",
+        "Step 6: Add checkpoint interval parameter"
+      ],
+      "passes": false,
+      "priority": 48
+    }
+  ]
+}
