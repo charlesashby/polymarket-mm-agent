@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import csv
+import hashlib
 import importlib
 import json
 import time
+import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
@@ -32,6 +36,19 @@ from mm.src.mm.types import ChainlinkCustomData, OrderFlowBucketDepth10CustomDat
 DEFAULT_CATALOG_ROOT = Path("/home/ashbyc/data/polymarket/1.0.5/nautilus-catalog-prod")
 CLIENT_ID_DATA = ClientId("PARQUET-CATALOG")
 FORCED_PRICE_PRECISION = 2
+REPO_ROOT = Path(__file__).resolve().parents[4]
+EXPERIMENTS_CSV = REPO_ROOT / "experiments" / "experiments.csv"
+EXPERIMENT_FIELDS = [
+    "timestamp_utc",
+    "experiment_id",
+    "dataset_id",
+    "strategy",
+    "pnl",
+    "volume",
+    "win_rate",
+    "number_of_trades",
+    "fill_rate",
+]
 HARDCODED_SLUGS = [
     'sol-updown-15m-1768770900', 
     'sol-updown-15m-1768779900', 
@@ -171,6 +188,23 @@ def _safe_trade_volume(fills_df: pd.DataFrame) -> float:
     qty = pd.to_numeric(fills_df[qty_col], errors="coerce").abs()
     price = pd.to_numeric(fills_df[price_col], errors="coerce")
     return float((qty * price).sum(skipna=True))
+
+
+def _dataset_id_for_slugs(slugs: Sequence[str]) -> str:
+    slug_key = "|".join(sorted(s.strip() for s in slugs if s and s.strip()))
+    if not slug_key:
+        return "unknown"
+    return hashlib.sha256(slug_key.encode("utf-8")).hexdigest()
+
+
+def _append_experiment_row(path: Path, row: Mapping[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_header = not path.exists()
+    with path.open("a", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=EXPERIMENT_FIELDS)
+        if write_header:
+            writer.writeheader()
+        writer.writerow(row)
 
 
 def _mark_price_for_instrument(inst_id: str, meta_by_inst: Mapping[str, PolymarketMetaCustomData]) -> Optional[float]:
@@ -470,11 +504,15 @@ def evaluate_slugs(
 
     fills_report = engine.trader.generate_order_fills_report()
     fills_df = pd.DataFrame(fills_report)
+    orders_report = engine.trader.generate_orders_report()
+    orders_df = pd.DataFrame(orders_report)
     mark_by_inst = _compute_mark_prices(meta_by_inst, chainlink_by_inst)
     pnl = _compute_pnl_from_fills(fills_df, mark_by_inst)
     win_pct = _winning_fill_percentage(fills_df, mark_by_inst)
     volume = _safe_trade_volume(fills_df)
     fills_count = float(len(fills_df) if not fills_df.empty else 0)
+    orders_count = float(len(orders_df) if not orders_df.empty else 0)
+    fill_rate = (fills_count / orders_count) if orders_count > 0 else 0.0
     avg_notional = (volume / fills_count) if fills_count > 0 else 0.0
 
     try:
@@ -493,6 +531,7 @@ def evaluate_slugs(
         "volume": volume,
         "fills": fills_count,
         "win_pct": win_pct,
+        "fill_rate": fill_rate,
         "avg_notional": avg_notional,
     }
 

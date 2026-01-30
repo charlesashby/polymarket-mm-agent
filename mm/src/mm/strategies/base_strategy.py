@@ -20,7 +20,7 @@ from mm.src.mm.types import CHAINLINK_DATATYPE, ORDER_FLOW_BUCKET_DEPTH10_DATATY
 from mm.src.mm.utils import get_open_exposure
 
 
-MAX_ORDER_NOTIONAL = 50.0
+MAX_ORDER_NOTIONAL = 5.0
 ALLOW_SELL_ORDERS = False
 
 
