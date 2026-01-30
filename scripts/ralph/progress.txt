@@ -1,1 +1,31 @@
-# Ralph Progress Log\nStarted: 2026-01-30 13:27:17-0500\n---
+# Ralph Progress Log
+Started: 2026-01-30 13:27:17-0500
+
+## Codebase Patterns
+- Strategy implementation: All strategies must inherit from BaseStrategy in mm/src/mm/strategies/base_strategy.py
+- Factory functions required: active_pair_factory() and event_state_factory() must be provided to BaseStrategy constructor
+- Evaluation command: python -m mm.src.mm.eval.evaluate --strategy <module.path.StrategyClass>
+- Expected baseline metrics: PNL=0.0, volume=0.0, fills=0 for no-op strategies
+- Data catalog location: /home/ashbyc/data/polymarket/1.0.5/nautilus-catalog-prod
+- Hardcoded slugs: 9 SOL 15-minute markets defined in evaluate.py (HARDCODED_SLUGS)
+
+---
+
+## 2026-01-30 13:52 - F001
+- What was implemented: Verified baseline no-op strategy implementation
+- Files verified: mm/src/mm/strategies/baseline.py
+- **Learnings for future iterations:**
+  - The baseline.py strategy was already implemented and working correctly
+  - BaseStrategy requires two factory functions: active_pair_factory and event_state_factory
+  - active_pair_factory returns a dict-like object to track state per slug pair (YES/NO)
+  - event_state_factory returns an object to track per-instrument event state (start_dt, end_dt, ref price)
+  - The evaluation pipeline requires all three data types: QuoteTick, TradeTick, OrderBookDepth10
+  - Strategies also receive ChainlinkCustomData and OrderFlowBucketDepth10CustomData
+  - A no-op strategy should override _handle_* methods but not place any orders
+  - Evaluation runs on all 9 hardcoded slugs and produces aggregated metrics
+  - Success is verified by: PNL=0.0000 volume=0.0000 fills=0 win%=0.00
+  - The BaseStrategy class provides helper methods for order creation (_make_buy_order, _make_sell_order)
+  - Position and exposure tracking is handled automatically by BaseStrategy
+  - No formal test suite exists yet, validation done via end-to-end evaluation runs
+
+---
