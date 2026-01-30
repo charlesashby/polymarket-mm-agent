@@ -53,7 +53,7 @@ class AvellanedaStoikovBasicStrategy(BaseStrategy):
         *,
         edge: float = 0.02,
         max_position: int = 200,
-        quote_qty: int = 5,
+        quote_notional: Optional[float] = None,
         min_quote_interval_secs: float = 5.0,
         **kwargs,
     ) -> None:
@@ -65,7 +65,9 @@ class AvellanedaStoikovBasicStrategy(BaseStrategy):
         )
         self.edge = float(edge)
         self.max_position = int(max_position)
-        self.quote_qty = int(max(1, quote_qty))
+        if quote_notional is None:
+            quote_notional = self._max_order_notional
+        self.quote_notional = float(quote_notional)
         self.min_quote_interval_secs = float(min_quote_interval_secs)
 
         self._bbo_by_id: Dict[InstrumentId, BBO] = {}
@@ -162,8 +164,8 @@ class AvellanedaStoikovBasicStrategy(BaseStrategy):
         bid_px = float(min(self.px_ceil, max(self.px_floor, fair - self.edge - skew)))
         ask_px = float(min(self.px_ceil, max(self.px_floor, fair + self.edge - skew)))
 
-        bid_qty = max(self.min_qty_for_notional(bid_px), self.quote_qty)
-        ask_qty = max(self.min_qty_for_notional(ask_px), self.quote_qty)
+        bid_qty = self.qty_for_notional(bid_px, self.quote_notional)
+        ask_qty = self.qty_for_notional(ask_px, self.quote_notional)
 
         # Cancel outstanding orders for this instrument before re-quoting.
         for order in self.cache.orders():

@@ -4,7 +4,7 @@ Minimal test strategy to debug order submission.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from nautilus_trader.model.data import OrderBookDepth10
 from nautilus_trader.model.enums import OrderSide
@@ -18,7 +18,7 @@ class TestOrdersStrategy(BaseStrategy):
     Purpose: Test if order submission and fills work at all.
     """
 
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self, quote_notional: Optional[float] = None, **kwargs: Any) -> None:
         def active_pair_factory():
             return {"quoted": False}
 
@@ -32,6 +32,9 @@ class TestOrdersStrategy(BaseStrategy):
             **kwargs
         )
 
+        if quote_notional is None:
+            quote_notional = self._max_order_notional
+        self.quote_notional = float(quote_notional)
         self._quoted = False
 
     def on_start(self) -> None:
@@ -59,7 +62,7 @@ class TestOrdersStrategy(BaseStrategy):
 
         # Aggressively cross: buy at best_ask + 0.05
         buy_price = min(0.99, best_ask + 0.05)
-        buy_qty = 100
+        buy_qty = self.qty_for_notional(buy_price, self.quote_notional)
 
         print(f"[TestOrders] Creating BUY order: {buy_qty}@{buy_price:.2f} (best_ask={best_ask:.2f})")
 

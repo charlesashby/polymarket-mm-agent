@@ -104,6 +104,16 @@ class BaseStrategy(Strategy):
             return self.min_qty
         return int(max(self.min_qty, math.ceil(self.min_notional / float(px))))
 
+    def qty_for_notional(self, px: float, target_notional: Optional[float]) -> int:
+        if target_notional is None:
+            return 0
+        if target_notional <= 0.0 or px <= 0.0 or not np.isfinite(px):
+            return 0
+        notional = min(float(target_notional), float(self._max_order_notional))
+        qty = int(notional / float(px))
+        qty = max(qty, self.min_qty_for_notional(px))
+        return int(qty)
+
     def add_instruments(self, new_ids: List[InstrumentId]) -> None:
         actually_new = 0
         for inst_id in new_ids:

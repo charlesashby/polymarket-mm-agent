@@ -36,8 +36,8 @@ class ComplementAwareMM(BaseStrategy):
     ----------
     spread : float
         Half-spread in decimal (e.g., 0.02 for 2 cents on each side)
-    quote_size : int
-        Fixed quote size in contracts
+    quote_notional : float
+        Target notional per quote
     verbose : bool
         Enable verbose logging
     """
@@ -45,7 +45,7 @@ class ComplementAwareMM(BaseStrategy):
     def __init__(
         self,
         spread: float = 0.02,
-        quote_size: int = 100,
+        quote_notional: Optional[float] = None,
         verbose: bool = False,
         **kwargs: Any
     ) -> None:
@@ -56,8 +56,8 @@ class ComplementAwareMM(BaseStrategy):
         ----------
         spread : float, default 0.02
             Half-spread to quote around effective mid price
-        quote_size : int, default 100
-            Fixed size for each quote
+        quote_notional : float, default None
+            Target notional per quote (defaults to MAX_ORDER_NOTIONAL)
         verbose : bool, default False
             If True, log trading activity
         **kwargs
@@ -88,7 +88,9 @@ class ComplementAwareMM(BaseStrategy):
         )
 
         self.spread = float(spread)
-        self.quote_size = int(quote_size)
+        if quote_notional is None:
+            quote_notional = self._max_order_notional
+        self.quote_notional = float(quote_notional)
         self.verbose = bool(verbose)
 
         # Track open orders per instrument
@@ -107,7 +109,7 @@ class ComplementAwareMM(BaseStrategy):
         """Called when strategy starts."""
         super()._on_start()
 
-        print(f"[ComplementAwareMM] Strategy started with spread={self.spread}, size={self.quote_size}")
+        print(f"[ComplementAwareMM] Strategy started with spread={self.spread}, notional={self.quote_notional}")
         print(f"[ComplementAwareMM] Verbose mode: {self.verbose}")
         print(f"[ComplementAwareMM] Tracking {len(self._slugs)} slug pairs")
 
@@ -336,8 +338,11 @@ class ComplementAwareMM(BaseStrategy):
         # Clear tracking
         self._open_orders[inst_id] = {}
 
+        bid_qty = self.qty_for_notional(our_bid, self.quote_notional)
+        ask_qty = self.qty_for_notional(our_ask, self.quote_notional)
+
         # Submit new buy order
-        buy_order = self._make_buy_order(inst_id, our_bid, self.quote_size)
+        buy_order = self._make_buy_order(inst_id, our_bid, bid_qty)
         if buy_order:
             self.log_order_submit(buy_order, note=f"eff_mid={eff_mid:.3f}")
             self.submit_order(buy_order)
@@ -345,7 +350,7 @@ class ComplementAwareMM(BaseStrategy):
             self._quotes_sent += 1
 
         # Submit new sell order
-        sell_order = self._make_sell_order(inst_id, our_ask, self.quote_size)
+        sell_order = self._make_sell_order(inst_id, our_ask, ask_qty)
         if sell_order:
             self.log_order_submit(sell_order, note=f"eff_mid={eff_mid:.3f}")
             self.submit_order(sell_order)

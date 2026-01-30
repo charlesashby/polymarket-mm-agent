@@ -38,8 +38,8 @@ class InventoryAwareMM(BaseStrategy):
     ----------
     spread : float
         Base half-spread in decimal (e.g., 0.01 for 1 cent on each side, optimized)
-    quote_size : int
-        Fixed quote size in contracts
+    quote_notional : float
+        Target notional per quote
     position_limit : int
         Maximum absolute position per instrument (e.g., 5000)
     skew_coefficient : float
@@ -54,7 +54,7 @@ class InventoryAwareMM(BaseStrategy):
     def __init__(
         self,
         spread: float = 0.01,
-        quote_size: int = 100,
+        quote_notional: Optional[float] = None,
         position_limit: int = 5000,
         skew_coefficient: float = 0.3,
         spread_widening: float = 0.01,
@@ -68,8 +68,8 @@ class InventoryAwareMM(BaseStrategy):
         ----------
         spread : float, default 0.01
             Base half-spread to quote around effective mid price (optimized from 0.02)
-        quote_size : int, default 100
-            Fixed size for each quote
+        quote_notional : float, default None
+            Target notional per quote (defaults to MAX_ORDER_NOTIONAL)
         position_limit : int, default 5000
             Maximum absolute position per instrument
         skew_coefficient : float, default 0.3
@@ -106,7 +106,9 @@ class InventoryAwareMM(BaseStrategy):
         )
 
         self.spread = float(spread)
-        self.quote_size = int(quote_size)
+        if quote_notional is None:
+            quote_notional = self._max_order_notional
+        self.quote_notional = float(quote_notional)
         self.position_limit = int(position_limit)
         self.skew_coefficient = float(skew_coefficient)
         self.spread_widening = float(spread_widening)
@@ -137,7 +139,7 @@ class InventoryAwareMM(BaseStrategy):
 
         print(f"[InventoryAwareMM] Strategy started")
         print(f"[InventoryAwareMM]   Base spread: {self.spread}")
-        print(f"[InventoryAwareMM]   Quote size: {self.quote_size}")
+        print(f"[InventoryAwareMM]   Quote notional: {self.quote_notional}")
         print(f"[InventoryAwareMM]   Position limit: {self.position_limit}")
         print(f"[InventoryAwareMM]   Skew coefficient: {self.skew_coefficient}")
         print(f"[InventoryAwareMM]   Spread widening: {self.spread_widening}")
@@ -505,13 +507,16 @@ class InventoryAwareMM(BaseStrategy):
         # Clear tracking
         self._open_orders[inst_id] = {}
 
+        bid_qty = self.qty_for_notional(our_bid, self.quote_notional)
+        ask_qty = self.qty_for_notional(our_ask, self.quote_notional)
+
         # Check position limits before quoting
-        can_buy = self._check_position_limit(inst_id, OrderSide.BUY, self.quote_size)
-        can_sell = self._check_position_limit(inst_id, OrderSide.SELL, self.quote_size)
+        can_buy = self._check_position_limit(inst_id, OrderSide.BUY, bid_qty)
+        can_sell = self._check_position_limit(inst_id, OrderSide.SELL, ask_qty)
 
         # Submit new buy order (if within limits)
         if can_buy:
-            buy_order = self._make_buy_order(inst_id, our_bid, self.quote_size)
+            buy_order = self._make_buy_order(inst_id, our_bid, bid_qty)
             if buy_order:
                 note = f"pos={position:.0f} skew={inventory_skew:.4f} spread={adjusted_spread:.4f}"
                 self.log_order_submit(buy_order, note=note)
@@ -521,7 +526,7 @@ class InventoryAwareMM(BaseStrategy):
 
         # Submit new sell order (if within limits)
         if can_sell:
-            sell_order = self._make_sell_order(inst_id, our_ask, self.quote_size)
+            sell_order = self._make_sell_order(inst_id, our_ask, ask_qty)
             if sell_order:
                 note = f"pos={position:.0f} skew={inventory_skew:.4f} spread={adjusted_spread:.4f}"
                 self.log_order_submit(sell_order, note=note)

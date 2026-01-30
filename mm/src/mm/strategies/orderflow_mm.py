@@ -37,8 +37,8 @@ class OrderFlowMM(BaseStrategy):
     ----------
     spread : float
         Base half-spread in decimal (e.g., 0.02 for 2 cents on each side)
-    quote_size : int
-        Fixed quote size in contracts
+    quote_notional : float
+        Target notional per quote
     flow_lookback : int
         Number of flow buckets to analyze for signals (default 5)
     flow_skew_coeff : float
@@ -52,7 +52,7 @@ class OrderFlowMM(BaseStrategy):
     def __init__(
         self,
         spread: float = 0.02,
-        quote_size: int = 100,
+        quote_notional: Optional[float] = None,
         flow_lookback: int = 5,
         flow_skew_coeff: float = 0.2,
         min_flow_threshold: float = 100.0,
@@ -66,8 +66,8 @@ class OrderFlowMM(BaseStrategy):
         ----------
         spread : float, default 0.02
             Base half-spread to quote around effective mid price
-        quote_size : int, default 100
-            Fixed size for each quote
+        quote_notional : float, default None
+            Target notional per quote (defaults to MAX_ORDER_NOTIONAL)
         flow_lookback : int, default 5
             Number of recent flow buckets to analyze
         flow_skew_coeff : float, default 0.2
@@ -103,7 +103,9 @@ class OrderFlowMM(BaseStrategy):
         )
 
         self.spread = float(spread)
-        self.quote_size = int(quote_size)
+        if quote_notional is None:
+            quote_notional = self._max_order_notional
+        self.quote_notional = float(quote_notional)
         self.flow_lookback = int(flow_lookback)
         self.flow_skew_coeff = float(flow_skew_coeff)
         self.min_flow_threshold = float(min_flow_threshold)
@@ -423,8 +425,11 @@ class OrderFlowMM(BaseStrategy):
         # Clear tracking
         self._open_orders[inst_id] = {}
 
+        bid_qty = self.qty_for_notional(our_bid, self.quote_notional)
+        ask_qty = self.qty_for_notional(our_ask, self.quote_notional)
+
         # Submit new buy order
-        buy_order = self._make_buy_order(inst_id, our_bid, self.quote_size)
+        buy_order = self._make_buy_order(inst_id, our_bid, bid_qty)
         if buy_order:
             note = f"eff_mid={eff_mid:.4f} flow_skew={flow_skew:.4f}"
             self.log_order_submit(buy_order, note=note)
@@ -433,7 +438,7 @@ class OrderFlowMM(BaseStrategy):
             self._quotes_sent += 1
 
         # Submit new sell order (if ALLOW_SELL_ORDERS is True)
-        sell_order = self._make_sell_order(inst_id, our_ask, self.quote_size)
+        sell_order = self._make_sell_order(inst_id, our_ask, ask_qty)
         if sell_order:
             note = f"eff_mid={eff_mid:.4f} flow_skew={flow_skew:.4f}"
             self.log_order_submit(sell_order, note=note)

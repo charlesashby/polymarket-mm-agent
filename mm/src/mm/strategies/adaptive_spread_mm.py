@@ -46,8 +46,8 @@ class AdaptiveSpreadMM(BaseStrategy):
         Number of mid price updates to use for volatility calculation
     vol_multiplier : float
         Multiplier for volatility-based spread adjustment (e.g., 2.0)
-    quote_size : int
-        Fixed quote size in contracts
+    quote_notional : float
+        Target notional per quote
     position_limit : int
         Maximum absolute position per instrument
     skew_coefficient : float
@@ -65,7 +65,7 @@ class AdaptiveSpreadMM(BaseStrategy):
         max_spread: float = 0.05,
         vol_lookback: int = 20,
         vol_multiplier: float = 2.0,
-        quote_size: int = 100,
+        quote_notional: Optional[float] = None,
         position_limit: int = 5000,
         skew_coefficient: float = 0.3,
         use_order_flow: bool = False,
@@ -87,8 +87,8 @@ class AdaptiveSpreadMM(BaseStrategy):
             Number of price updates for volatility window
         vol_multiplier : float, default 2.0
             How much to scale spread with volatility
-        quote_size : int, default 100
-            Fixed size for each quote
+        quote_notional : float, default None
+            Target notional per quote (defaults to MAX_ORDER_NOTIONAL)
         position_limit : int, default 5000
             Maximum absolute position per instrument
         skew_coefficient : float, default 0.3
@@ -131,7 +131,9 @@ class AdaptiveSpreadMM(BaseStrategy):
         self.max_spread = float(max_spread)
         self.vol_lookback = int(vol_lookback)
         self.vol_multiplier = float(vol_multiplier)
-        self.quote_size = int(quote_size)
+        if quote_notional is None:
+            quote_notional = self._max_order_notional
+        self.quote_notional = float(quote_notional)
         self.position_limit = int(position_limit)
         self.skew_coefficient = float(skew_coefficient)
         self.use_order_flow = bool(use_order_flow)
@@ -172,7 +174,7 @@ class AdaptiveSpreadMM(BaseStrategy):
         print(f"[AdaptiveSpreadMM]   Max spread: {self.max_spread}")
         print(f"[AdaptiveSpreadMM]   Vol lookback: {self.vol_lookback}")
         print(f"[AdaptiveSpreadMM]   Vol multiplier: {self.vol_multiplier}")
-        print(f"[AdaptiveSpreadMM]   Quote size: {self.quote_size}")
+        print(f"[AdaptiveSpreadMM]   Quote notional: {self.quote_notional}")
         print(f"[AdaptiveSpreadMM]   Position limit: {self.position_limit}")
         print(f"[AdaptiveSpreadMM]   Skew coefficient: {self.skew_coefficient}")
         print(f"[AdaptiveSpreadMM]   Use order flow: {self.use_order_flow}")
@@ -648,13 +650,16 @@ class AdaptiveSpreadMM(BaseStrategy):
         # Clear tracking
         self._open_orders[inst_id] = {}
 
+        bid_qty = self.qty_for_notional(our_bid, self.quote_notional)
+        ask_qty = self.qty_for_notional(our_ask, self.quote_notional)
+
         # Check position limits before quoting
-        can_buy = self._check_position_limit(inst_id, OrderSide.BUY, self.quote_size)
-        can_sell = self._check_position_limit(inst_id, OrderSide.SELL, self.quote_size)
+        can_buy = self._check_position_limit(inst_id, OrderSide.BUY, bid_qty)
+        can_sell = self._check_position_limit(inst_id, OrderSide.SELL, ask_qty)
 
         # Submit new buy order (if within limits)
         if can_buy:
-            buy_order = self._make_buy_order(inst_id, our_bid, self.quote_size)
+            buy_order = self._make_buy_order(inst_id, our_bid, bid_qty)
             if buy_order:
                 note = f"pos={position:.0f} spread={adaptive_spread:.4f} skew={inventory_skew:.4f}"
                 self.log_order_submit(buy_order, note=note)
@@ -664,7 +669,7 @@ class AdaptiveSpreadMM(BaseStrategy):
 
         # Submit new sell order (if within limits)
         if can_sell:
-            sell_order = self._make_sell_order(inst_id, our_ask, self.quote_size)
+            sell_order = self._make_sell_order(inst_id, our_ask, ask_qty)
             if sell_order:
                 note = f"pos={position:.0f} spread={adaptive_spread:.4f} skew={inventory_skew:.4f}"
                 self.log_order_submit(sell_order, note=note)
