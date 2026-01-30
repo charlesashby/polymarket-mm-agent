@@ -57,4 +57,4 @@ please open an issue with a short design note before submitting a large change.
 
 ## License
 
-TBD.
+MIT.
